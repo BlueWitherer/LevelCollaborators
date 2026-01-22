@@ -16,7 +16,7 @@ This mod allows level creators to invite other players as collaborators on their
 In the main menu, you can find the <cg>collaborations button</c> in the menu located at the bottom and <cy>press it</c> to open the <cg>collaboration manager</c>. You can see all of your invites and active collaboration. You may <cy>accept or decline any invites</c> you have pending review.
 
 ### Inviting
-**As a level creator**, you can <cy>invite other players as collaborators</c> by going to the info page of your published level and <cy>press the collaborators button</c> on the left-hand side to open the collaboration manager page. Once open, you can <cy>type in the username of the player(s) you would like to invite</c>.
+**As a <cg>level creator</c>**, you can <cy>invite other players as collaborators</c> by going to the <cg>info page of your published level</c> and <cy>press the collaborators button</c> on the left-hand side to open the <cg>collaboration manager page</c>. Once open, you can <cy>type in the username of the player(s) you would like to invite</c>.
 
 ---
 
