@@ -21,7 +21,7 @@ In the main menu, you can find the <cg>collaborations button</c> in the menu loc
 ---
 
 ### Credits
-- **[ArcticWoof](user:7689052)**: mod idea...
+- **[ArcticWoof](user:7689052)**: mod idea.....
 
 ---
 

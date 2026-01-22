@@ -26,7 +26,7 @@ In the main menu, you can find the collaborations button in the menu located at 
 ---
 
 ### Credits
-- **[ArcticWoof](https://www.github.com/DumbCaveSpider/)**: mod idea...
+- **[ArcticWoof](https://www.github.com/DumbCaveSpider/)**: mod idea.....
 
 ---
 

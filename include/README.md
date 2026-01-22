@@ -5,7 +5,7 @@ List other creators in your collabs!
 Let's start off by adding this mod as a dependency in your `mod.json`!
 ```jsonc
 "dependencies": {
-    "cheeseworks.template": {
+    "cheeseworks.levelcollaborators": {
         "importance": "required",
         "version": ">=1.0.0"
     }
