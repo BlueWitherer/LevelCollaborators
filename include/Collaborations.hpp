@@ -29,13 +29,14 @@ namespace levelcollab {
 
     class CW_LEVELCOLLAB_API_DLL CollaboratorIcon : public cocos2d::CCObject {
     private:
-        class Impl;
-        std::unique_ptr<Impl> m_impl;
+        int m_icon;
+        IconType m_type;
+        int m_color1;
+        int m_color2;
+        int m_glow;
+        bool m_useGlow;
 
     protected:
-        CollaboratorIcon();
-        virtual ~CollaboratorIcon();
-
         bool init(
             int icon,
             IconType type,
@@ -67,13 +68,11 @@ namespace levelcollab {
 
     class CW_LEVELCOLLAB_API_DLL Collaborator : public cocos2d::CCObject {
     private:
-        class Impl;
-        std::unique_ptr<Impl> m_impl;
+        std::string m_name;
+        int m_userID;
+        bool m_owner;
 
     protected:
-        Collaborator();
-        virtual ~Collaborator();
-
         bool init(
             std::string name,
             int userID,
@@ -94,13 +93,10 @@ namespace levelcollab {
 
     class CW_LEVELCOLLAB_API_DLL Collaboration : public cocos2d::CCObject {
     private:
-        class Impl;
-        std::unique_ptr<Impl> m_impl;
+        int m_levelID;
+        std::vector<Collaborator*> m_collaborators;
 
     protected:
-        Collaboration();
-        virtual ~Collaboration();
-
         bool init(
             int levelID,
             std::vector<Collaborator*> collaborators
@@ -113,7 +109,7 @@ namespace levelcollab {
         );
 
         int getLevelID() const noexcept;
-        std::span<Collaborator*> getCollaborators() const noexcept;
+        std::vector<Collaborator*> const& getCollaborators() const noexcept;
 
         GJGameLevel* getLevel() const;
         Collaborator* getCollaboratorByID(int userID) const noexcept;
