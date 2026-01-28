@@ -1,4 +1,4 @@
-# Level Collaborators
+# ![👥](frame:accountBtn_friends_001.png?scale=0.5) Level Collaborators
 **List other creators in your collabs!**
 
 *by [Cheeseworks](user:6408873)!*

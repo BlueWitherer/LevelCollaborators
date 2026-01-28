@@ -71,7 +71,7 @@ CollaboratorIcon* CollaboratorIcon::create(
     bool useGlow
 ) {
     auto ret = new CollaboratorIcon();
-    if (ret && ret->init(icon, type, color1, color2, glow, useGlow)) {
+    if (ret->init(icon, type, color1, color2, glow, useGlow)) {
         ret->autorelease();
         return ret;
     };
@@ -83,10 +83,12 @@ CollaboratorIcon* CollaboratorIcon::create(
 bool Collaborator::init(
     std::string name,
     int userID,
+    CollaboratorType type,
     bool owner
 ) {
     m_name = std::move(name);
     m_userID = userID;
+    m_type = type;
     m_owner = owner;
 
     return true;
@@ -100,6 +102,10 @@ int Collaborator::getUserID() const noexcept {
     return m_userID;
 };
 
+CollaboratorType Collaborator::getType() const noexcept {
+    return m_type;
+};
+
 bool Collaborator::isOwner() const noexcept {
     return m_owner;
 };
@@ -107,10 +113,11 @@ bool Collaborator::isOwner() const noexcept {
 Collaborator* Collaborator::create(
     std::string name,
     int userID,
+    CollaboratorType type,
     bool owner
 ) {
     auto ret = new Collaborator();
-    if (ret->init(std::move(name), userID, owner)) {
+    if (ret->init(std::move(name), userID, type, owner)) {
         ret->autorelease();
         return ret;
     };
@@ -164,21 +171,8 @@ Collaboration* Collaboration::create(
     return nullptr;
 };
 
-class CollaborationManager::Impl final {
-public:
-    std::vector<Collaboration*> collaborations;
-};
-
-CollaborationManager::CollaborationManager() {
-    m_impl = std::make_unique<Impl>();
-};
-
-CollaborationManager::~CollaborationManager() {
-    for (auto& collab : m_impl->collaborations) collab->release();
-};
-
-std::span<Collaboration*> CollaborationManager::getCollaborations() const noexcept {
-    return m_impl->collaborations;
+std::vector<Collaboration*> const& CollaborationManager::getCollaborations() const noexcept {
+    return m_collaborations;
 };
 
 void CollaborationManager::requestCollaborationForLevel(int levelID, FunctionRef<void(Collaboration*)> callback) {
@@ -187,7 +181,7 @@ void CollaborationManager::requestCollaborationForLevel(int levelID, FunctionRef
 };
 
 Collaboration* CollaborationManager::getCollaborationForLevel(int levelID) const noexcept {
-    for (auto const& collab : m_impl->collaborations) {
+    for (auto const& collab : m_collaborations) {
         if (collab->getLevelID() == levelID) return collab;
     };
 
@@ -195,6 +189,6 @@ Collaboration* CollaborationManager::getCollaborationForLevel(int levelID) const
 };
 
 CollaborationManager* CollaborationManager::get() {
-    static auto inst = new CollaborationManager();
+    static auto inst = new (std::nothrow) CollaborationManager();
     return inst;
 };

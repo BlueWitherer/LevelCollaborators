@@ -70,12 +70,14 @@ namespace levelcollab {
     private:
         std::string m_name;
         int m_userID;
+        CollaboratorType m_type;
         bool m_owner;
 
     protected:
         bool init(
             std::string name,
             int userID,
+            CollaboratorType type,
             bool owner
         );
 
@@ -83,11 +85,13 @@ namespace levelcollab {
         static Collaborator* create(
             std::string name,
             int userID,
+            CollaboratorType type,
             bool owner
         );
 
         std::string_view getName() const noexcept;
         int getUserID() const noexcept;
+        CollaboratorType getType() const noexcept;
         bool isOwner() const noexcept;
     };
 
@@ -117,14 +121,10 @@ namespace levelcollab {
 
     class CW_LEVELCOLLAB_API_DLL CollaborationManager : public cocos2d::CCObject {
     private:
-        class Impl;
-        std::unique_ptr<Impl> m_impl;
+        std::vector<Collaboration*> m_collaborations;
 
     protected:
-        CollaborationManager();
-        virtual ~CollaborationManager();
-
-        std::span<Collaboration*> getCollaborations() const noexcept;
+        std::vector<Collaboration*> const& getCollaborations() const noexcept;
 
         Collaboration* getCollaborationForLevel(int levelID) const noexcept;
         void requestCollaborationForLevel(int levelID, geode::FunctionRef<void(Collaboration*)> callback);
