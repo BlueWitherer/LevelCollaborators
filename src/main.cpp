@@ -1,9 +1,22 @@
+#include <argon/argon.hpp>
+
 #include <Geode/Geode.hpp>
 
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/LevelInfoLayer.hpp>
 
 using namespace geode::prelude;
+
+$on_game(Loaded) {
+    async::spawn(
+        argon::startAuth(),
+        [](Result<std::string> result) {
+            result.isErr() ? log::error("Error getting Argon token: {}", result.unwrapErr()) : log::info("Received Argon token!");
+            if (auto m = Mod::get()) m->setSavedValue("authtoken", std::move(result).unwrapOrDefault());
+            if (result.isOk()) Notification::create("Authorized with Argon", NotificationIcon::Success)->show();
+        }
+    );
+};
 
 class $modify(LCMenuLayer, MenuLayer) {
     bool init() {

@@ -5,56 +5,23 @@
 using namespace geode::prelude;
 using namespace levelcollab;
 
-bool CollaboratorIcon::init(
+CollaboratorIcon::CollaboratorIcon(
     int icon,
     IconType type,
     int color1,
     int color2,
     int glow,
     bool useGlow
-) {
-    m_icon = icon;
-    m_type = type;
-    m_color1 = color1;
-    m_color2 = color2;
-    m_glow = glow;
-    m_useGlow = useGlow;
-
-    return true;
-};
-
-int CollaboratorIcon::getIcon() const noexcept {
-    return m_icon;
-};
-
-IconType CollaboratorIcon::getType() const noexcept {
-    return m_type;
-};
-
-int CollaboratorIcon::getColor1() const noexcept {
-    return m_color1;
-};
-
-int CollaboratorIcon::getColor2() const noexcept {
-    return m_color2;
-};
-
-int CollaboratorIcon::getGlow() const noexcept {
-    return m_glow;
-};
-
-bool CollaboratorIcon::shouldUseGlow() const noexcept {
-    return m_useGlow;
-};
+) : icon(icon), type(type), color1(color1), color2(color2), glow(glow), useGlow(useGlow) {};
 
 SimplePlayer* CollaboratorIcon::createIcon() const {
     if (auto gm = GameManager::sharedState()) {
-        auto player = SimplePlayer::create(m_icon);
-        player->setColor(gm->colorForIdx(m_color1));
-        player->setSecondColor(gm->colorForIdx(m_color2));
+        auto player = SimplePlayer::create(icon);
+        player->setColor(gm->colorForIdx(color1));
+        player->setSecondColor(gm->colorForIdx(color2));
 
-        if (m_useGlow) player->setGlowOutline(gm->colorForIdx(m_glow));
-        if (!m_useGlow) player->disableGlowOutline();
+        if (useGlow) player->setGlowOutline(gm->colorForIdx(glow));
+        if (!useGlow) player->disableGlowOutline();
 
         return player;
     };
@@ -62,130 +29,39 @@ SimplePlayer* CollaboratorIcon::createIcon() const {
     return nullptr;
 };
 
-CollaboratorIcon* CollaboratorIcon::create(
-    int icon,
-    IconType type,
-    int color1,
-    int color2,
-    int glow,
-    bool useGlow
-) {
-    auto ret = new CollaboratorIcon();
-    if (ret->init(icon, type, color1, color2, glow, useGlow)) {
-        ret->autorelease();
-        return ret;
-    };
-
-    delete ret;
-    return nullptr;
-};
-
-bool Collaborator::init(
+Collaborator::Collaborator(
     std::string name,
     int userID,
+    CollaboratorIcon icon,
     CollaboratorType type,
     bool owner
-) {
-    m_name = std::move(name);
-    m_userID = userID;
-    m_type = type;
-    m_owner = owner;
+) : name(std::move(name)), userID(userID), icon(std::move(icon)), type(type), owner(owner) {};
 
-    return true;
-};
-
-std::string_view Collaborator::getName() const noexcept {
-    return m_name;
-};
-
-int Collaborator::getUserID() const noexcept {
-    return m_userID;
-};
-
-CollaboratorType Collaborator::getType() const noexcept {
-    return m_type;
-};
-
-bool Collaborator::isOwner() const noexcept {
-    return m_owner;
-};
-
-Collaborator* Collaborator::create(
-    std::string name,
-    int userID,
-    CollaboratorType type,
-    bool owner
-) {
-    auto ret = new Collaborator();
-    if (ret->init(std::move(name), userID, type, owner)) {
-        ret->autorelease();
-        return ret;
-    };
-
-    delete ret;
-    return nullptr;
-};
-
-bool Collaboration::init(
+Collaboration::Collaboration(
     int levelID,
-    std::vector<Collaborator*> collaborators
-) {
-    m_levelID = levelID;
-    m_collaborators = std::move(collaborators);
-
-    return true;
-};
-
-int Collaboration::getLevelID() const noexcept {
-    return m_levelID;
-};
+    std::vector<Collaborator> collaborators
+) : levelID(levelID), collaborators(std::move(collaborators)) {};
 
 GJGameLevel* Collaboration::getLevel() const {
-    if (auto glm = GameLevelManager::sharedState()) return glm->getSavedLevel(m_levelID);
+    if (auto glm = GameLevelManager::sharedState()) return glm->getSavedLevel(levelID);
     return nullptr;
 };
 
-Collaborator* Collaboration::getCollaboratorByID(int userID) const noexcept {
-    for (auto const& collab : m_collaborators) {
-        if (collab->getUserID() == userID) return collab;
-    };
-
-    return nullptr;
-};
-
-std::vector<Collaborator*> const& Collaboration::getCollaborators() const noexcept {
-    return m_collaborators;
-};
-
-Collaboration* Collaboration::create(
-    int levelID,
-    std::vector<Collaborator*> collaborators
-) {
-    auto ret = new Collaboration();
-    if (ret->init(levelID, std::move(collaborators))) {
-        ret->autorelease();
-        return ret;
-    };
-
-    delete ret;
-    return nullptr;
-};
-
-std::vector<Collaboration*> const& CollaborationManager::getCollaborations() const noexcept {
+std::span<const Collaboration> CollaborationManager::getCollaborations() const noexcept {
     return m_collaborations;
 };
 
-void CollaborationManager::requestCollaborationForLevel(int levelID, FunctionRef<void(Collaboration*)> callback) {
+void CollaborationManager::requestCollaborationForLevel(int levelID, FunctionRef<void(Result<Collaboration>)> callback) {
     auto collab = getCollaborationForLevel(levelID);
-    callback(collab); // dummy impl
+    callback(std::move(collab)); // dummy impl
 };
 
-Collaboration* CollaborationManager::getCollaborationForLevel(int levelID) const noexcept {
+Result<Collaboration> CollaborationManager::getCollaborationForLevel(int levelID) const noexcept {
     for (auto const& collab : m_collaborations) {
-        if (collab->getLevelID() == levelID) return collab;
+        if (collab.levelID == levelID) return Ok(collab);
     };
 
-    return nullptr;
+    return Err("No collaboration found");
 };
 
 CollaborationManager* CollaborationManager::get() {
