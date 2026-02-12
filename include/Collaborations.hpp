@@ -19,6 +19,9 @@
 #include <Geode/Result.hpp>
 
 namespace levelcollab {
+
+    // upcoming v2
+
     // Type of work a collaborator did
     enum class CollaboratorType : unsigned int {
         SpecialThanks = 0, // Thank them for being there, or did miscellaneous work!
@@ -70,18 +73,22 @@ namespace levelcollab {
         );
     };
 
+    // ^^^^^ upcoming v2 ^^^^^
+
     struct Collaboration {
         int levelID;
-        std::vector<Collaborator> collaborators;
+        std::vector<int> collaborators;
 
         Collaboration() = default;
         Collaboration(
             int levelID,
-            std::vector<Collaborator> collaborators
+            std::vector<int> collaborators
         );
 
         GJGameLevel* getLevel() const;
-        geode::Result<Collaborator> getCollaboratorByID(int userID) const noexcept;
+        void getCollaboratorInfo(int userID, geode::FunctionRef<void(GJUserScore*)> callback) const;
+
+        // geode::Result<Collaborator> getCollaboratorByID(int userID) const noexcept;
     };
 
     class CW_LEVELCOLLAB_API_DLL CollaborationManager : public cocos2d::CCObject {

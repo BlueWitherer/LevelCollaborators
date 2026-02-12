@@ -39,12 +39,29 @@ Collaborator::Collaborator(
 
 Collaboration::Collaboration(
     int levelID,
-    std::vector<Collaborator> collaborators
+    std::vector<int> collaborators
 ) : levelID(levelID), collaborators(std::move(collaborators)) {};
 
 GJGameLevel* Collaboration::getLevel() const {
     if (auto glm = GameLevelManager::sharedState()) return glm->getSavedLevel(levelID);
     return nullptr;
+};
+
+void Collaboration::getCollaboratorInfo(int userID, FunctionRef<void(GJUserScore*)> callback) const {
+    auto req = web::WebRequest();
+
+    req.param("targetAccountID", userID);
+    req.param("secret", "Wmfd2893gb7");
+
+    req.userAgent("");
+
+    async::TaskHolder<web::WebResponse>().spawn(
+        req.post("https://www.boomlings.com/database/getGJUserInfo20.php"),
+        [callback](web::WebResponse res) {
+            if (!res.ok()) return callback(nullptr);
+            return callback(GJUserScore::create(GameToolbox::stringSetupToDict(res.string().unwrapOrDefault(), ":")));
+        }
+    );
 };
 
 std::span<const Collaboration> CollaborationManager::getCollaborations() const noexcept {
