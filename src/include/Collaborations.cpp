@@ -11,8 +11,13 @@ CollaboratorIcon::CollaboratorIcon(
     int color1,
     int color2,
     int glow,
-    bool useGlow
-) : icon(icon), type(type), color1(color1), color2(color2), glow(glow), useGlow(useGlow) {};
+    bool useGlow) :
+    icon(icon),
+    type(type),
+    color1(color1),
+    color2(color2),
+    glow(glow),
+    useGlow(useGlow) {};
 
 SimplePlayer* CollaboratorIcon::createIcon() const {
     if (auto gm = GameManager::sharedState()) {
@@ -34,13 +39,16 @@ Collaborator::Collaborator(
     int userID,
     CollaboratorIcon icon,
     CollaboratorType type,
-    bool owner
-) : name(std::move(name)), userID(userID), icon(std::move(icon)), type(type), owner(owner) {};
+    bool owner) : name(std::move(name)),
+                  userID(userID),
+                  icon(std::move(icon)),
+                  type(type),
+                  owner(owner) {};
 
 Collaboration::Collaboration(
     int levelID,
-    std::vector<int> collaborators
-) : levelID(levelID), collaborators(std::move(collaborators)) {};
+    std::vector<int> collaborators) : levelID(levelID),
+                                      collaborators(std::move(collaborators)) {};
 
 GJGameLevel* Collaboration::getLevel() const {
     if (auto glm = GameLevelManager::sharedState()) return glm->getSavedLevel(levelID);
@@ -60,8 +68,7 @@ void Collaboration::getCollaboratorInfo(int userID, FunctionRef<void(GJUserScore
         [callback](web::WebResponse res) {
             if (!res.ok()) return callback(nullptr);
             return callback(GJUserScore::create(GameToolbox::stringSetupToDict(res.string().unwrapOrDefault(), ":")));
-        }
-    );
+        });
 };
 
 std::span<const Collaboration> CollaborationManager::getCollaborations() const noexcept {
@@ -70,7 +77,7 @@ std::span<const Collaboration> CollaborationManager::getCollaborations() const n
 
 void CollaborationManager::requestCollaborationForLevel(int levelID, FunctionRef<void(Result<Collaboration>)> callback) {
     auto collab = getCollaborationForLevel(levelID);
-    callback(std::move(collab)); // dummy impl
+    callback(std::move(collab));  // dummy impl
 };
 
 Result<Collaboration> CollaborationManager::getCollaborationForLevel(int levelID) const noexcept {

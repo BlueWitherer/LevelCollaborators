@@ -24,15 +24,15 @@ namespace levelcollab {
 
     // Type of work a collaborator did
     enum class CollaboratorType : unsigned int {
-        SpecialThanks = 0, // Thank them for being there, or did miscellaneous work!
-        Playtesting = 1, // Tested the level for bugs and gameplay quality
-        Optimization = 2, // Optimized groups and/or objects
-        Effects = 3, // Added additional visual effects
-        Merging = 4, // Merged different sections of the level
-        Gameplay = 5, // Worked on the layout and general gameplay
-        Decoration = 6, // Decorated the gameplay of the level
-        Art = 7, // Created custom art and/or themed assets for the level
-        Music = 8, // Composed or selected the music for the level
+        SpecialThanks = 0,  // Thank them for being there, or did miscellaneous work!
+        Playtesting = 1,    // Tested the level for bugs and gameplay quality
+        Optimization = 2,   // Optimized groups and/or objects
+        Effects = 3,        // Added additional visual effects
+        Merging = 4,        // Merged different sections of the level
+        Gameplay = 5,       // Worked on the layout and general gameplay
+        Decoration = 6,     // Decorated the gameplay of the level
+        Art = 7,            // Created custom art and/or themed assets for the level
+        Music = 8,          // Composed or selected the music for the level
     };
 
     struct CollaboratorIcon {
@@ -50,8 +50,7 @@ namespace levelcollab {
             int color1,
             int color2,
             int glow,
-            bool useGlow
-        );
+            bool useGlow);
 
         SimplePlayer* createIcon() const;
     };
@@ -69,8 +68,7 @@ namespace levelcollab {
             int userID,
             CollaboratorIcon icon,
             CollaboratorType type,
-            bool owner
-        );
+            bool owner);
     };
 
     // ^^^^^ upcoming v2 ^^^^^
@@ -82,8 +80,7 @@ namespace levelcollab {
         Collaboration() = default;
         Collaboration(
             int levelID,
-            std::vector<int> collaborators
-        );
+            std::vector<int> collaborators);
 
         GJGameLevel* getLevel() const;
         void getCollaboratorInfo(int userID, geode::FunctionRef<void(GJUserScore*)> callback) const;

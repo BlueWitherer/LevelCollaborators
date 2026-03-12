@@ -14,8 +14,7 @@ $on_game(Loaded) {
             result.isErr() ? log::error("Error getting Argon token: {}", result.unwrapErr()) : log::info("Received Argon token!");
             if (auto m = Mod::get()) m->setSavedValue("authtoken", result.unwrapOrDefault());
             if (result.isOk()) Notification::create("Authorized with Argon", NotificationIcon::Success)->show();
-        }
-    );
+        });
 };
 
 class $modify(LCMenuLayer, MenuLayer) {
@@ -26,8 +25,7 @@ class $modify(LCMenuLayer, MenuLayer) {
             auto myBtn = CCMenuItemSpriteExtra::create(
                 CCSprite::createWithSpriteFrameName("GJ_likeBtn_001.png"),
                 this,
-                menu_selector(LCMenuLayer::onMyBtn)
-            );
+                menu_selector(LCMenuLayer::onMyBtn));
             myBtn->setID("my-button"_spr);
 
             menu->addChild(myBtn);
@@ -43,15 +41,14 @@ class $modify(LCMenuLayer, MenuLayer) {
 };
 
 class $modify(LCLevelInfoLayer, LevelInfoLayer) {
-    bool init(GJGameLevel * level, bool challenge) {
+    bool init(GJGameLevel* level, bool challenge) {
         if (!LevelInfoLayer::init(level, challenge)) return false;
 
         if (auto menu = getChildByID("left-side-menu")) {
             auto collabBtn = CCMenuItemSpriteExtra::create(
                 CCSprite::createWithSpriteFrameName("GJ_likeBtn_001.png"),
                 this,
-                menu_selector(LCLevelInfoLayer::onCollaborators)
-            );
+                menu_selector(LCLevelInfoLayer::onCollaborators));
             collabBtn->setID("collaborations-button"_spr);
 
             menu->addChild(collabBtn);
