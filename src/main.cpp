@@ -1,3 +1,5 @@
+#include <API.hpp>
+
 #include <argon/argon.hpp>
 
 #include <Geode/Geode.hpp>
@@ -31,6 +33,24 @@ class $modify(LCMenuLayer, MenuLayer) {
             menu->addChild(myBtn);
             menu->updateLayout();
         };
+
+        // testing something
+        levelcollab::Collaboration::getCollaboratorInfo(6408873, [](GJUserScore* user) {
+            if (auto u = WeakRef(user).lock()) {
+                log::trace("User name: {}", u->m_userName);
+                log::trace("User ID: {}", u->m_userID);
+                log::trace("User account ID: {}", u->m_accountID);
+                log::trace("User color 1: {}", u->m_color1);
+                log::trace("User color 2: {}", u->m_color2);
+                log::trace("User glow color: {}", u->m_color3);
+                log::trace("User uses glow: {}", u->m_glowEnabled);
+                log::trace("User custom string: {}", u->m_customString);
+
+                return;
+            };
+
+            log::error("No user object");
+        });
 
         return true;
     };
