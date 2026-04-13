@@ -1,4 +1,6 @@
-#include <API.hpp>
+#include <API.h>
+
+#include <asp/iter.hpp>
 
 #include <Geode/Geode.hpp>
 
@@ -140,42 +142,6 @@ GJGameLevel* Collaboration::getLevel() const {
     return nullptr;
 };
 
-void Collaboration::getCollaboratorInfo(int accountID, FunctionRef<void(GJUserScore*)> callback) {
-    auto req = web::WebRequest()
-                   .bodyString(fmt::format("secret=Wmfd2893gb7&targetAccountID={}", utils::numToString(accountID)))
-                   .userAgent("");
-
-    log::trace("Request URL: {}", req.getUrl());
-    log::trace("Request parameters: {}", req.getUrlParams());
-    log::trace("Request headers: {}", req.getHeaders());
-    log::trace("Request body: {}", req.getBody().value_or(ByteVector{}));
-
-    async::spawn(
-        req.post("https://www.boomlings.com/database/getGJUserInfo20.php"),
-        [callback](web::WebResponse res) {
-            if (res.error()) {
-                log::error("Error getting user information: {}", res.string().unwrapOrDefault());
-                return callback(nullptr);
-            };
-
-            auto const resStr = res.string().unwrapOrDefault();
-
-            log::debug("Received response: {}", resStr);
-            if (auto dict = CCDictionary::create()) {
-                auto splits = utils::string::split(resStr, ":");
-                for (size_t i = 0; i + 1 < splits.size(); i += 2) {
-                    dict->setObject(CCString::create(splits[i + 1]), splits[i]);
-                };
-
-                log::debug("{}", dict);
-                if (auto user = GJUserScore::create(dict)) return callback(user);
-            };
-
-            log::error("Could not set up dictionary from previous response string", resStr);
-            return callback(nullptr);
-        });
-};
-
 void CollaborationManager::registerCollab(std::shared_ptr<Collaboration> collab) {
     m_collaborations[collab->getLevelID()] = collab;
 };
@@ -200,8 +166,35 @@ std::vector<std::weak_ptr<Collaboration>> CollaborationManager::getCollabs() con
     return out;
 };
 
-void CollaborationManager::requestCollabForLevel(int levelID, FunctionRef<void(std::weak_ptr<Collaboration>)> callback) {
+void levelcollab::requestCollabForLevel(int levelID, FunctionRef<void(std::weak_ptr<Collaboration>)> callback) {
     callback(std::weak_ptr<Collaboration>());  // dummy impl
+};
+
+void levelcollab::getCollaboratorInfo(int accountID, FunctionRef<void(Result<GJUserScore*>)> callback) {
+    auto req = web::WebRequest()
+                   .bodyString(fmt::format("secret=Wmfd2893gb7&targetAccountID={}", utils::numToString(accountID)))
+                   .userAgent("");
+
+    async::spawn(
+        req.post("https://www.boomlings.com/database/getGJUserInfo20.php"),
+        [callback](web::WebResponse res) {
+            auto const resStr = res.string().unwrapOrDefault();
+
+            if (res.error()) {
+                log::error("Error getting user information: {}", resStr);
+                return callback(Err(""));
+            };
+
+            log::debug("Received response: {}", resStr);
+
+            auto dict = CCDictionary::create();
+            auto splits = asp::iter::split(resStr, ":")  // owo
+                              .mapCast<std::string>()
+                              .collect();
+
+            for (size_t i = 0; i + 1 < splits.size(); i += 2) dict->setObject(CCString::create(splits[i + 1]), splits[i]);
+            callback(Ok(GJUserScore::create(dict)));
+        });
 };
 
 CollaborationManager* CollaborationManager::get() {

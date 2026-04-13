@@ -1,4 +1,4 @@
-#include <API.hpp>
+#include <API.h>
 
 #include <argon/argon.hpp>
 
@@ -35,8 +35,8 @@ class $modify(LCMenuLayer, MenuLayer) {
         };
 
         // testing something
-        levelcollab::Collaboration::getCollaboratorInfo(6408873, [](GJUserScore* user) {
-            if (auto u = WeakRef(user).lock()) {
+        levelcollab::getCollaboratorInfo(6408873, [](Result<GJUserScore*> user) {
+            if (auto u = user.unwrapOr(nullptr)) {
                 log::trace("User name: {}", u->m_userName);
                 log::trace("User ID: {}", u->m_userID);
                 log::trace("User account ID: {}", u->m_accountID);

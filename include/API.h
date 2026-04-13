@@ -101,7 +101,6 @@ namespace levelcollab {
         [[nodiscard]] CW_LEVELCOLLAB_API_DLL std::span<const std::weak_ptr<Collaborator>> getCollaborators() const noexcept;
 
         CW_LEVELCOLLAB_API_DLL GJGameLevel* getLevel() const;
-        CW_LEVELCOLLAB_API_DLL static void getCollaboratorInfo(int accountID, geode::FunctionRef<void(GJUserScore*)> callback);
     };
 
     class CW_LEVELCOLLAB_API_DLL CollaborationManager final {
@@ -125,6 +124,8 @@ namespace levelcollab {
         std::vector<std::weak_ptr<Collaboration>> getCollabs() const noexcept;
 
         std::shared_ptr<Collaboration> getCollabForLevel(int levelID) const noexcept;
-        static void requestCollabForLevel(int levelID, geode::FunctionRef<void(std::weak_ptr<Collaboration>)> callback);
     };
+
+    CW_LEVELCOLLAB_API_DLL void requestCollabForLevel(int levelID, geode::FunctionRef<void(std::weak_ptr<Collaboration>)> callback);
+    CW_LEVELCOLLAB_API_DLL void getCollaboratorInfo(int accountID, geode::FunctionRef<void(geode::Result<GJUserScore*>)> callback);
 };
