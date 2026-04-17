@@ -4,61 +4,20 @@
 
 #include <Geode/Geode.hpp>
 
-#include <Geode/modify/MenuLayer.hpp>
+#include <Geode/modify/LevelCell.hpp>
 #include <Geode/modify/LevelInfoLayer.hpp>
 
 using namespace geode::prelude;
 
-$on_game(Loaded) {
-    async::spawn(
-        argon::startAuth(),
-        [](Result<std::string> result) {
-            result.isErr() ? log::error("Error getting Argon token: {}", result.unwrapErr()) : log::info("Received Argon token!");
-            if (auto m = Mod::get()) m->setSavedValue("authtoken", result.unwrapOrDefault());
-            if (result.isOk()) Notification::create("Authorized with Argon", NotificationIcon::Success)->show();
-        });
-};
-
-class $modify(LCMenuLayer, MenuLayer) {
-    bool init() {
-        if (!MenuLayer::init()) return false;
-
-        if (auto menu = getChildByID("bottom-menu")) {
-            auto myBtn = CCMenuItemSpriteExtra::create(
-                CCSprite::createWithSpriteFrameName("GJ_likeBtn_001.png"),
-                this,
-                menu_selector(LCMenuLayer::onMyBtn));
-            myBtn->setID("my-button"_spr);
-
-            menu->addChild(myBtn);
-            menu->updateLayout();
-        };
-
-        // testing something
-        levelcollab::getCollaboratorInfo(6408873, [](Result<GJUserScore*> user) {
-            if (auto u = user.unwrapOr(nullptr)) {
-                log::trace("User name: {}", u->m_userName);
-                log::trace("User ID: {}", u->m_userID);
-                log::trace("User account ID: {}", u->m_accountID);
-                log::trace("User color 1: {}", u->m_color1);
-                log::trace("User color 2: {}", u->m_color2);
-                log::trace("User glow color: {}", u->m_color3);
-                log::trace("User uses glow: {}", u->m_glowEnabled);
-                log::trace("User custom string: {}", u->m_customString);
-
-                return;
-            };
-
-            log::error("No user object");
-        });
-
-        return true;
-    };
-
-    void onMyBtn(CCObject*) {
-        FLAlertLayer::create("Geode", "Hello from my custom mod!", "OK")->show();
-    };
-};
+// $on_game(Loaded) {
+//     async::spawn(
+//         argon::startAuth(),
+//         [](Result<std::string> result) {
+//             result.isErr() ? log::error("Error getting Argon token: {}", result.unwrapErr()) : log::info("Received Argon token!");
+//             if (auto m = Mod::get()) m->setSavedValue("authtoken", result.unwrapOrDefault());
+//             if (result.isOk()) Notification::create("Authorized with Argon", NotificationIcon::Success)->show();
+//         });
+// };
 
 class $modify(LCLevelInfoLayer, LevelInfoLayer) {
     bool init(GJGameLevel* level, bool challenge) {
