@@ -21,8 +21,8 @@ CollaboratorIcon::CollaboratorIcon(
     m_glow(glow),
     m_useGlow(useGlow) {};
 
-std::shared_ptr<CollaboratorIcon> CollaboratorIcon::create(int icon, IconType type, int color1, int color2, int glow, bool useGlow) {
-    return std::make_shared<CollaboratorIcon>(icon, type, color1, color2, glow, useGlow);
+CollaboratorIcon CollaboratorIcon::create(int icon, IconType type, int color1, int color2, int glow, bool useGlow) {
+    return CollaboratorIcon(icon, type, color1, color2, glow, useGlow);
 };
 
 int CollaboratorIcon::getIcon() const noexcept {
@@ -68,7 +68,7 @@ SimplePlayer* CollaboratorIcon::createIcon() const {
 Collaborator::Collaborator(
     std::string name,
     int accountID,
-    std::shared_ptr<CollaboratorIcon> icon,
+    CollaboratorIcon icon,
     CollaboratorType type,
     bool isOwner) :
     m_name(std::move(name)),
@@ -77,17 +77,8 @@ Collaborator::Collaborator(
     m_type(type),
     m_isOwner(isOwner) {};
 
-std::shared_ptr<Collaborator> Collaborator::create(std::string name, int accountID, std::shared_ptr<CollaboratorIcon> icon, CollaboratorType type, bool isOwner) {
-    if (auto cm = CollaborationManager::get()) {
-        if (auto c = cm->getCollaborator(accountID).lock()) return c;
-
-        auto c = std::make_shared<Collaborator>(std::move(name), accountID, icon, type, isOwner);
-        cm->registerCollaborator(c);
-
-        return c;
-    };
-
-    return nullptr;
+Collaborator Collaborator::create(std::string name, int accountID, CollaboratorIcon icon, CollaboratorType type, bool isOwner) {
+    return Collaborator(std::move(name), accountID, std::move(icon), type, isOwner);
 };
 
 ZStringView Collaborator::getName() const noexcept {
@@ -98,7 +89,7 @@ int Collaborator::getAccountID() const noexcept {
     return m_accountID;
 };
 
-std::weak_ptr<CollaboratorIcon> Collaborator::getIcon() const noexcept {
+CollaboratorIcon const& Collaborator::getIcon() const noexcept {
     return m_icon;
 };
 
@@ -112,13 +103,16 @@ bool Collaborator::isOwner() const noexcept {
 
 Collaboration::Collaboration(
     int levelID,
-    std::vector<std::weak_ptr<Collaborator>> collaborators) :
+    std::vector<Collaborator> collaborators) :
     m_levelID(levelID),
     m_collaborators(std::move(collaborators)) {};
 
-std::shared_ptr<Collaboration> Collaboration::create(int levelID, std::vector<std::weak_ptr<Collaborator>> collaborators) {
+std::shared_ptr<Collaboration> Collaboration::create(int levelID, std::vector<Collaborator> collaborators) {
     if (auto cm = CollaborationManager::get()) {
+        log::trace("Checking for pre-existing collaboration for level {}", levelID);
         if (auto c = cm->getCollab(levelID).lock()) return c;
+
+        log::debug("Creating new collaboration for level {} with {} creators", levelID, collaborators.size());
 
         auto c = std::make_shared<Collaboration>(levelID, std::move(collaborators));
         cm->registerCollab(c);
@@ -126,6 +120,7 @@ std::shared_ptr<Collaboration> Collaboration::create(int levelID, std::vector<st
         return c;
     };
 
+    log::error("State manager not available");
     return nullptr;
 };
 
@@ -133,8 +128,16 @@ int Collaboration::getLevelID() const noexcept {
     return m_levelID;
 };
 
-std::span<const std::weak_ptr<Collaborator>> Collaboration::getCollaborators() const noexcept {
+std::span<const Collaborator> Collaboration::getCollaborators() const noexcept {
     return m_collaborators;
+};
+
+Result<Collaborator> Collaboration::getOwner() const noexcept {
+    for (auto const& collab : getCollaborators()) {
+        if (collab.isOwner()) return Ok(collab);
+    };
+
+    return Err("No owner found");
 };
 
 GJGameLevel* Collaboration::getLevel() const {
@@ -142,12 +145,33 @@ GJGameLevel* Collaboration::getLevel() const {
     return nullptr;
 };
 
-void CollaborationManager::registerCollab(std::shared_ptr<Collaboration> collab) {
-    m_collaborations[collab->getLevelID()] = collab;
+Result<std::string> Collaboration::getFormattedString() const {
+    std::string out;
+
+    auto ownerRes = getOwner();
+    if (ownerRes.isErr()) return Err("Failed to get owner");
+
+    auto owner = ownerRes.unwrap();
+
+    if (getCollaborators().size() > 2) {
+        out = fmt::format("By {} & {} more", owner.getName(), getCollaborators().size() - 1);
+    } else {
+        std::string other;
+
+        for (auto const& collab : getCollaborators()) {
+            if (!collab.isOwner()) other = collab.getName();
+        };
+
+        if (other.empty()) return Ok(fmt::format("By {} & more", owner.getName()));
+
+        out = fmt::format("By {} & {}", owner.getName(), other);
+    };
+
+    return Ok(out);
 };
 
-void CollaborationManager::registerCollaborator(std::shared_ptr<Collaborator> collaborator) {
-    m_collaborators[collaborator->getAccountID()] = collaborator;
+void CollaborationManager::registerCollab(std::shared_ptr<Collaboration> collab) {
+    m_collaborations[collab->getLevelID()] = collab;
 };
 
 std::weak_ptr<Collaboration> CollaborationManager::getCollab(int levelID) const noexcept {
@@ -155,15 +179,14 @@ std::weak_ptr<Collaboration> CollaborationManager::getCollab(int levelID) const 
     return std::weak_ptr<Collaboration>();
 };
 
-std::weak_ptr<Collaborator> CollaborationManager::getCollaborator(int accountID) const noexcept {
-    if (auto it = m_collaborators.find(accountID); it != m_collaborators.end()) return it->second;
-    return std::weak_ptr<Collaborator>();
-};
-
 std::vector<std::weak_ptr<Collaboration>> CollaborationManager::getCollabs() const noexcept {
     std::vector<std::weak_ptr<Collaboration>> out;
     for (auto collab : m_collaborations) out.push_back(collab.second);
     return out;
+};
+
+std::weak_ptr<Collaboration> CollaborationManager::getCollabForLevel(int levelID) const noexcept {
+    return getCollab(levelID);
 };
 
 void levelcollab::requestCollabForLevel(int levelID, FunctionRef<void(std::weak_ptr<Collaboration>)> callback) {

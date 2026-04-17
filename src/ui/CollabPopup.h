@@ -7,9 +7,9 @@
 namespace levelcollab {
     class CollabPopup final : public geode::Popup {
     protected:
-        bool init(std::weak_ptr<Collaboration> collab);
+        bool init(GJGameLevel* level, std::weak_ptr<Collaboration> const& collab);
 
     public:
-        static CollabPopup* create(std::weak_ptr<Collaboration> collab);
+        static CollabPopup* create(GJGameLevel* level, std::weak_ptr<Collaboration> const& collab);
     };
 };
