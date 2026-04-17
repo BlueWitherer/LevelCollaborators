@@ -119,7 +119,7 @@ namespace levelcollab {
         std::weak_ptr<Collaborator> getCollaborator(int accountID) const noexcept;
 
     public:
-        static CollaborationManager* get();
+        static CollaborationManager* get() noexcept;
 
         std::vector<std::weak_ptr<Collaboration>> getCollabs() const noexcept;
 

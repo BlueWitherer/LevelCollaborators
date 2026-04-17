@@ -197,7 +197,7 @@ void levelcollab::getCollaboratorInfo(int accountID, FunctionRef<void(Result<GJU
         });
 };
 
-CollaborationManager* CollaborationManager::get() {
+CollaborationManager* CollaborationManager::get() noexcept {
     static auto inst = new (std::nothrow) CollaborationManager();
     return inst;
 };
