@@ -1,5 +1,7 @@
 #include <API.h>
 
+#include <Utils.h>
+
 #include <asp/iter.hpp>
 
 #include <Geode/Geode.hpp>
@@ -69,16 +71,14 @@ Collaborator::Collaborator(
     std::string name,
     int accountID,
     CollaboratorIcon icon,
-    CollaboratorType type,
-    bool isOwner) :
+    CollaboratorType type) :
     m_name(std::move(name)),
     m_accountID(accountID),
     m_icon(icon),
-    m_type(type),
-    m_isOwner(isOwner) {};
+    m_type(type) {};
 
-Collaborator Collaborator::create(std::string name, int accountID, CollaboratorIcon icon, CollaboratorType type, bool isOwner) {
-    return Collaborator(std::move(name), accountID, std::move(icon), type, isOwner);
+Collaborator Collaborator::create(std::string name, int accountID, CollaboratorIcon icon, CollaboratorType type) {
+    return Collaborator(std::move(name), accountID, std::move(icon), type);
 };
 
 ZStringView Collaborator::getName() const noexcept {
@@ -97,24 +97,39 @@ CollaboratorType Collaborator::getType() const noexcept {
     return m_type;
 };
 
-bool Collaborator::isOwner() const noexcept {
-    return m_isOwner;
+void Collaborator::reloadInfo(geode::CopyableFunction<void(geode::Result<Collaborator>)>&& callback) {
+    getCollaboratorInfo(getAccountID(), [cb = std::move(callback), this](geode::Result<GJUserScore*> res) {
+        if (res.isErr()) {
+            log::error("Failed to reload collaborator info: {}", res.unwrapErr());
+            return cb(Err(res.unwrapErr()));
+        };
+
+        auto userInfo = res.unwrapOrDefault();
+
+        m_name = userInfo->m_userName;
+        m_accountID = userInfo->m_accountID;
+        m_icon = CollaboratorIcon::create(userInfo->m_iconID, userInfo->m_iconType, userInfo->m_color1, userInfo->m_color2, userInfo->m_color3, userInfo->m_glowEnabled);
+
+        cb(Ok(*this));
+    });
 };
 
 Collaboration::Collaboration(
     int levelID,
+    Collaborator owner,
     std::vector<Collaborator> collaborators) :
     m_levelID(levelID),
+    m_owner(std::move(owner)),
     m_collaborators(std::move(collaborators)) {};
 
-std::shared_ptr<Collaboration> Collaboration::create(int levelID, std::vector<Collaborator> collaborators) {
+std::shared_ptr<Collaboration> Collaboration::create(int levelID, Collaborator owner, std::vector<Collaborator> collaborators) {
     if (auto cm = CollaborationManager::get()) {
         log::trace("Checking for pre-existing collaboration for level {}", levelID);
         if (auto c = cm->getCollab(levelID).lock()) return c;
 
         log::debug("Creating new collaboration for level {} with {} creators", levelID, collaborators.size());
 
-        auto c = std::make_shared<Collaboration>(levelID, std::move(collaborators));
+        auto c = std::make_shared<Collaboration>(levelID, std::move(owner), std::move(collaborators));
         cm->registerCollab(c);
 
         return c;
@@ -128,16 +143,12 @@ int Collaboration::getLevelID() const noexcept {
     return m_levelID;
 };
 
-std::span<const Collaborator> Collaboration::getCollaborators() const noexcept {
-    return m_collaborators;
+Collaborator const& Collaboration::getOwner() const noexcept {
+    return m_owner;
 };
 
-Result<Collaborator> Collaboration::getOwner() const noexcept {
-    for (auto const& collab : getCollaborators()) {
-        if (collab.isOwner()) return Ok(collab);
-    };
-
-    return Err("No owner found");
+std::span<const Collaborator> Collaboration::getCollaborators() const noexcept {
+    return m_collaborators;
 };
 
 GJGameLevel* Collaboration::getLevel() const {
@@ -145,29 +156,24 @@ GJGameLevel* Collaboration::getLevel() const {
     return nullptr;
 };
 
-Result<std::string> Collaboration::getFormattedString() const {
+std::string Collaboration::getFormattedString(bool prefix) const {
     std::string out;
 
-    auto ownerRes = getOwner();
-    if (ownerRes.isErr()) return Err("Failed to get owner");
-
-    auto owner = ownerRes.unwrap();
+    auto owner = getOwner();
 
     if (getCollaborators().size() > 2) {
-        out = fmt::format("By {} & {} more", owner.getName(), getCollaborators().size() - 1);
+        out = fmt::format("{}{} & {} more", prefix ? "By " : "", owner.getName(), getCollaborators().size() - 1);
+    } else if (getCollaborators().size() >= 1) {
+        std::string other = getCollaborators()[0].getName();
+
+        if (other.empty()) return fmt::format("{}{} & more", prefix ? "By " : "", owner.getName());
+
+        out = fmt::format("{}{} & {}", prefix ? "By " : "", owner.getName(), other);
     } else {
-        std::string other;
-
-        for (auto const& collab : getCollaborators()) {
-            if (!collab.isOwner()) other = collab.getName();
-        };
-
-        if (other.empty()) return Ok(fmt::format("By {} & more", owner.getName()));
-
-        out = fmt::format("By {} & {}", owner.getName(), other);
+        return fmt::format("{}{}", prefix ? "By " : "", owner.getName());
     };
 
-    return Ok(out);
+    return out;
 };
 
 void CollaborationManager::registerCollab(std::shared_ptr<Collaboration> collab) {
@@ -189,23 +195,23 @@ std::weak_ptr<Collaboration> CollaborationManager::getCollabForLevel(int levelID
     return getCollab(levelID);
 };
 
-void levelcollab::requestCollabForLevel(int levelID, FunctionRef<void(std::weak_ptr<Collaboration>)> callback) {
+void levelcollab::requestCollabForLevel(int levelID, CopyableFunction<void(std::weak_ptr<Collaboration>)>&& callback) {
     callback(std::weak_ptr<Collaboration>());  // dummy impl
 };
 
-void levelcollab::getCollaboratorInfo(int accountID, FunctionRef<void(Result<GJUserScore*>)> callback) {
+void levelcollab::getCollaboratorInfo(int accountID, CopyableFunction<void(Result<GJUserScore*>)>&& callback) {
     auto req = web::WebRequest()
                    .bodyString(fmt::format("secret=Wmfd2893gb7&targetAccountID={}", utils::numToString(accountID)))
                    .userAgent("");
 
     async::spawn(
         req.post("https://www.boomlings.com/database/getGJUserInfo20.php"),
-        [callback](web::WebResponse res) {
+        [cb = std::move(callback)](web::WebResponse res) {  // copyable has const () operator woohoo!
             auto const resStr = res.string().unwrapOrDefault();
 
             if (res.error()) {
                 log::error("Error getting user information: {}", resStr);
-                return callback(Err(""));
+                return cb(Err("An error occurred while fetching user information"));
             };
 
             log::debug("Received response: {}", resStr);
@@ -216,11 +222,66 @@ void levelcollab::getCollaboratorInfo(int accountID, FunctionRef<void(Result<GJU
                               .collect();
 
             for (size_t i = 0; i + 1 < splits.size(); i += 2) dict->setObject(CCString::create(splits[i + 1]), splits[i]);
-            callback(Ok(GJUserScore::create(dict)));
+            cb(Ok(GJUserScore::create(dict)));
         });
 };
 
 CollaborationManager* CollaborationManager::get() noexcept {
     static auto inst = new (std::nothrow) CollaborationManager();
     return inst;
+};
+
+void AuthState::setAuthInfo(int accountID, int userID, std::string username, std::string token) {
+    m_accountID = accountID;
+    m_userID = userID;
+    m_username = std::move(username);
+    m_token = std::move(token);
+};
+
+int AuthState::getAccountID() const noexcept {
+    return m_accountID;
+};
+
+int AuthState::getUserID() const noexcept {
+    return m_userID;
+};
+
+ZStringView AuthState::getUsername() const noexcept {
+    return m_username;
+};
+
+ZStringView AuthState::getToken() const noexcept {
+    return m_token;
+};
+
+AuthState* AuthState::get() noexcept {
+    static auto inst = new (std::nothrow) AuthState();
+    return inst;
+};
+
+void fetch::getUserByUsername(std::string_view username, CopyableFunction<void(Result<GJUserScore*>)>&& callback) {
+    auto req = web::WebRequest()
+                   .bodyString(fmt::format("secret=Wmfd2893gb7&str={}", username))
+                   .userAgent("");
+
+    async::spawn(
+        req.post("https://www.boomlings.com/database/getGJUsers20.php"),
+        [cb = std::move(callback)](web::WebResponse res) {
+            auto const resStr = res.string().unwrapOrDefault();
+
+            if (res.error()) {
+                log::error("Error getting user information: {}", resStr);
+                return cb(Err("An error occurred while fetching user information"));
+            };
+
+            log::debug("Received response: {}", resStr);
+
+            auto dict = CCDictionary::create();
+            auto splits = asp::iter::split(resStr, ":")
+                              .mapCast<std::string>()
+                              .collect();
+
+            for (size_t i = 0; i + 1 < splits.size(); i += 2) dict->setObject(CCString::create(splits[i + 1]), splits[i]);
+            cb(Ok(GJUserScore::create(dict)));
+        });
 };
